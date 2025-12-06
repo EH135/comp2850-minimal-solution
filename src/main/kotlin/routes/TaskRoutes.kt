@@ -120,19 +120,43 @@ private suspend fun ApplicationCall.handleCreateTaskSuccess(
     title: String,
     query: String,
 ) {
-    val task = Task(title = title)
-    store.add(task)
+    val taskStore = store
+    val duplicate = taskStore.getAll().any { it.title.equals(title, ignoreCase = true) }
 
-    if (isHtmxRequest()) {
-        val paginated = paginateTasks(store, query, 1)
-        val statusHtml =
-            messageStatusFragment(
-                """Task "${task.title}" added successfully.""",
+    if (duplicate) {
+        if (isHtmxRequest()) {
+            val paginated = paginateTasks(store, query, 1)
+            val statusHtml = messageStatusFragment(
+                """Task "$title" already exists.""",
+                isError = true
             )
-        respondTaskArea(paginated, statusHtml, htmxTrigger = "task-added")
-    } else {
-        response.headers.append("Location", redirectPath(query, 1))
-        respond(HttpStatusCode.SeeOther)
+            respondTaskArea(paginated, statusHtml)
+        }
+        else {
+            val paginated = paginateTasks(store, query, 1)
+            val context = paginated.context + mapOf(
+                "error" to "duplicate",
+                "msg" to title
+            )
+            val html = renderTemplate("tasks/index.peb", context)
+            respondText(html, ContentType.Text.Html)
+        }
+    }
+    else {
+        val task = Task(title = title)
+        store.add(task)
+
+        if (isHtmxRequest()) {
+            val paginated = paginateTasks(store, query, 1)
+            val statusHtml =
+                messageStatusFragment(
+                    """Task "${task.title}" added successfully.""",
+                )
+            respondTaskArea(paginated, statusHtml, htmxTrigger = "task-added")
+        } else {
+            response.headers.append("Location", redirectPath(query, 1))
+            respond(HttpStatusCode.SeeOther)
+        }
     }
 }
 
@@ -236,11 +260,16 @@ private fun paginateTasks(
             .map { it.toPebbleContext() }
     val pageData = Page.paginate(tasks, currentPage = page, pageSize = PAGE_SIZE)
 
+    val completedCount = tasks.count { it["completed"] as Boolean }
+    val totalCount = tasks.size
+
     // Create context with both flat keys (for backwards compatibility) and nested page object (for templates)
     val context =
         pageData.toPebbleContext("tasks") +
             mapOf(
                 "query" to query,
+                "completedCount" to completedCount,
+                "totalCount" to totalCount,
                 "page" to
                     mapOf(
                         "items" to pageData.items,

@@ -9,7 +9,7 @@
         <p>
             Manage your tasks with full keyboard and screen reader support.
             {% if totalItems > 0 %}
-                Currently {{ totalItems }} task{% if totalItems != 1 %}s{% endif %}.
+                Currently {{ completedCount }} / {{ totalItems }} tasks completed.
             {% else %}
                 No tasks yet. Add one below!
             {% endif %}
@@ -23,6 +23,9 @@
         <ul>
             {% if error == "title" %}
             <li><a href="#task-title">{% if msg == "too_long" %}Title is too long (max 200 characters){% else %}Title is required. Please enter at least one character.{% endif %}</a></li>
+            {% endif %}
+            {% if error == "duplicate" %}
+            <li><a href="#task-title">Task "{{ msg }}" already exists. Please enter a different title.</a></li>
             {% endif %}
         </ul>
     </div>
@@ -43,6 +46,12 @@
                    id="task-title"
                    name="title"
                    required
+                   minlength="3"
+                   maxlength="200"
+                   oninvalid="if(this.value.length == 0){this.setCustomValidity('Cannot be blank');}
+                              else if(this.value.length < 3){this.setCustomValidity('Title is too short (min 3 characters)');}
+                              else if(this.value.length > 200){this.setCustomValidity('Title is too long (max 200 characters)');}"
+                   oninput="this.setCustomValidity('')"
                    {% if error == "title" %}aria-invalid="true" aria-describedby="title-hint title-error"{% else %}aria-describedby="title-hint"{% endif %}
                    placeholder="e.g., Buy milk">
 
@@ -50,6 +59,12 @@
             {% if error == "title" %}
             <p id="title-error" class="error-message">
                 {% if msg == "too_long" %}Title is too long (max 200 characters){% else %}Title is required. Please enter at least one character.{% endif %}
+            </p>
+            {% endif %}
+            
+            {% if error == "duplicate" %}
+            <p id="title-error" class="error-message">
+                Task "{{ msg }}" already exists. Please enter a different title.
             </p>
             {% endif %}
 

@@ -1,4 +1,4 @@
-<li id="task-{{ task.id }}" class="task-view">
+<li id="task-{{ task.id }}" class="task-view {% if task.completed %}completed{% endif %}">
   <span class="task-title">{{ task.title }}</span>
 
   <form action="/tasks/{{ task.id }}/edit" method="get" style="display: inline;"
@@ -14,5 +14,16 @@
         hx-swap="outerHTML"
         hx-confirm="Delete the task '{{ task.title }}'?">
     <button type="submit" aria-label="Delete task: {{ task.title }}">Delete</button>
+  </form>
+
+  <form action="/tasls/{{ task.id }}/toggle"
+        method="post"
+        style="displau:inline;"
+        hx-post="/tasks/{{ task.id }}/toggle"
+        hx-target="#task-{{ task.id }}"
+        hx-swap="outerHTML">
+    <button type="submit">
+      {% if task.completed %}Mark Incomplete{% else %}Mark Complete{% endif %}
+    </button>
   </form>
 </li>
